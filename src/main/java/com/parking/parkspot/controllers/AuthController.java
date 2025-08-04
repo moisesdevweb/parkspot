@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.parking.parkspot.model.entity.Persona;
+import com.parking.parkspot.repository.PersonaRepository;
+
 import com.parking.parkspot.model.enums.ERole;
 import com.parking.parkspot.model.entity.Role;
 import com.parking.parkspot.model.entity.User;
@@ -39,6 +42,9 @@ import com.parking.parkspot.security.service.UserDetailsImpl;
 public class AuthController {
     @Autowired
     AuthenticationManager authenticationManager;
+    
+    @Autowired
+    PersonaRepository personaRepository;
 
     @Autowired
     UserRepository userRepository;
@@ -55,6 +61,17 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
 
+        // Primero verificar que el usuario existe y está activo
+        User user = userRepository.findByUsername(loginRequest.getUsername()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Usuario no encontrado"));
+        }
+        // Verificar que la persona asociada esté activa
+        if (user.getPersona() == null || user.getPersona().getEstado() == 0) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Usuario inactivo. Contacte al administrador"));
+        }
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
@@ -65,12 +82,23 @@ public class AuthController {
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
                 .collect(Collectors.toList());
+        // Obtener datos de la persona (ya sabemos que user existe y tiene persona activa)
+        String nombreCompleto = user.getPersona().getNombreCompleto();
+        String apellidos = user.getPersona().getApellidos();
+        String dni = user.getPersona().getDni();
+        String direccion = user.getPersona().getDireccion();
+        String telefono = user.getPersona().getTelefono();
 
         return ResponseEntity.ok(new JwtResponse(jwt,
-                userDetails.getId(),
-                userDetails.getUsername(),
-                userDetails.getEmail(),
-                roles));
+            userDetails.getId(),
+            userDetails.getUsername(),
+            userDetails.getEmail(),
+            roles,
+            nombreCompleto,
+            apellidos,
+            dni,
+            direccion,
+            telefono));
     }
 
     @PostMapping("/registrarme")
@@ -86,12 +114,29 @@ public class AuthController {
                     .badRequest()
                     .body(new MessageResponse("Error: ¡El correo electrónico ya está en uso!"));
         }
+         // Validar que el DNI no exista
+        if (personaRepository.existsByDni(signUpRequest.getDni())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new MessageResponse("Error: ¡El DNI ya está registrado!"));
+        }
+
+        // Crear la entidad Persona
+        Persona persona = new Persona();
+        persona.setNombreCompleto(signUpRequest.getNombreCompleto());
+        persona.setApellidos(signUpRequest.getApellidos());
+        persona.setDni(signUpRequest.getDni());
+        persona.setDireccion(signUpRequest.getDireccion());
+        persona.setTelefono(signUpRequest.getTelefono());
+        persona.setEstado(1); // ¡AGREGA ESTA LÍNEA! - Estado activo por defecto
+        // Si tienes más campos, agrégalos aquí
+        personaRepository.save(persona);
 
         // Create new user's account
         User user = new User(signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
                 encoder.encode(signUpRequest.getPassword()));
-
+        user.setPersona(persona); // ¡ESTA LÍNEA AQUÍ!
         Set<String> strRoles = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
 

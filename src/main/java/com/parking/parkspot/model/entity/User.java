@@ -38,6 +38,11 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
+    @OneToOne
+    @JoinColumn(name = "persona_id", referencedColumnName = "id", unique = true)
+    private Persona persona;
+
+
     public User() {
     }
 
@@ -85,6 +90,12 @@ public class User {
 
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
+    }
+    public Persona getPersona() {
+        return persona;
+    }
+    public void setPersona(Persona persona) {
+        this.persona = persona;
     }
 }
 

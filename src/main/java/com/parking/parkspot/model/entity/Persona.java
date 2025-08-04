@@ -7,19 +7,24 @@ import lombok.*;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-@Table(name = "clientes")
-public class Cliente {
+@Table(name = "personas")
+public class Persona {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String nombres;
+    private String nombreCompleto;
     private String apellidos;
+    @Column(unique = true, length = 8)
+    private String dni;  // DNI del usuario
     private String telefono;
     private String direccion;
 
-    @OneToOne
-    @JoinColumn(name = "usuario_id", nullable = false)
+    // Estado activo o inactivo
+    @Column(name = "estado", nullable = false)
+    private Integer estado;
+
+    @OneToOne(mappedBy = "persona")
     private User usuario;
 }
