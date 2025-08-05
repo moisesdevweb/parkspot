@@ -2,6 +2,7 @@ package com.parking.parkspot.controllers;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -170,11 +171,141 @@ public class PersonaController {
         return ResponseEntity.ok(new MessageResponse(mensaje + " exitosamente"));
     }
 
-    // Listar todos los usuarios (solo ROLE_ADMIN)
-    @GetMapping("/listar")
+    // ADMIN puede listar solo VIGILANTES
+    @GetMapping("/listar-vigilantes")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<?> listarUsuarios() {
+    public ResponseEntity<?> listarVigilantes() {
         List<User> usuarios = userRepository.findAll();
-        return ResponseEntity.ok(usuarios);
+        
+        // Filtrar solo los vigilantes y crear respuesta limpia
+        List<PerfilCompletoResponse> vigilantes = usuarios.stream()
+                .filter(user -> user.getRoles().stream()
+                        .anyMatch(role -> role.getName().name().equals("ROLE_VIGILANTE")))
+                .distinct()
+                .map(user -> new PerfilCompletoResponse(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getEmail(),
+                    user.getPersona() != null ? user.getPersona().getNombreCompleto() : null,
+                    user.getPersona() != null ? user.getPersona().getApellidos() : null,
+                    user.getPersona() != null ? user.getPersona().getDni() : null,
+                    user.getPersona() != null ? user.getPersona().getDireccion() : null,
+                    user.getPersona() != null ? user.getPersona().getTelefono() : null,
+                    user.getPersona() != null ? user.getPersona().getEstado() : null
+                ))
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(vigilantes);
+    }
+
+    // VIGILANTE y ADMIN pueden listar solo CLIENTES
+    @GetMapping("/listar-clientes")
+    @PreAuthorize("hasRole('ROLE_VIGILANTE') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<?> listarClientes() {
+        List<User> usuarios = userRepository.findAll();
+        
+        // Filtrar solo los clientes y crear respuesta limpia
+        List<PerfilCompletoResponse> clientes = usuarios.stream()
+                .filter(user -> user.getRoles().stream()
+                        .anyMatch(role -> role.getName().name().equals("ROLE_CLIENTE")))
+                .distinct()
+                .map(user -> new PerfilCompletoResponse(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getEmail(),
+                    user.getPersona() != null ? user.getPersona().getNombreCompleto() : null,
+                    user.getPersona() != null ? user.getPersona().getApellidos() : null,
+                    user.getPersona() != null ? user.getPersona().getDni() : null,
+                    user.getPersona() != null ? user.getPersona().getDireccion() : null,
+                    user.getPersona() != null ? user.getPersona().getTelefono() : null,
+                    user.getPersona() != null ? user.getPersona().getEstado() : null
+                ))
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(clientes);
+    }
+
+
+    // VIGILANTE puede ver perfil de CLIENTE por ID
+    @GetMapping("/cliente/{id}")
+    @PreAuthorize("hasRole('ROLE_VIGILANTE') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<?> getPerfilCliente(@PathVariable Long id) {
+        Optional<User> userOpt = userRepository.findById(id);
+        
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Usuario no encontrado"));
+        }
+
+        User user = userOpt.get();
+        
+        // Verificar que sea CLIENTE
+        boolean esCliente = user.getRoles().stream()
+                .anyMatch(role -> role.getName().name().equals("ROLE_CLIENTE"));
+        
+        if (!esCliente) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: El usuario no es un cliente"));
+        }
+
+        if (user.getPersona() == null) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Datos de persona no encontrados"));
+        }
+
+        PerfilCompletoResponse perfil = new PerfilCompletoResponse(
+            user.getId(),
+            user.getUsername(),
+            user.getEmail(),
+            user.getPersona().getNombreCompleto(),
+            user.getPersona().getApellidos(),
+            user.getPersona().getDni(),
+            user.getPersona().getDireccion(),
+            user.getPersona().getTelefono(),
+            user.getPersona().getEstado()
+        );
+
+        return ResponseEntity.ok(perfil);
+    }
+
+    // VIGILANTE puede editar perfil de CLIENTE por ID
+    @PutMapping("/cliente/{id}")
+    @PreAuthorize("hasRole('ROLE_VIGILANTE') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<?> updatePerfilCliente(@PathVariable Long id, 
+                                                @Valid @RequestBody UpdatePerfilRequest updateRequest) {
+        Optional<User> userOpt = userRepository.findById(id);
+        
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Usuario no encontrado"));
+        }
+
+        User user = userOpt.get();
+        
+        // Verificar que sea CLIENTE
+        boolean esCliente = user.getRoles().stream()
+                .anyMatch(role -> role.getName().name().equals("ROLE_CLIENTE"));
+        
+        if (!esCliente) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Solo puedes editar perfiles de clientes"));
+        }
+
+        Persona persona = user.getPersona();
+        
+        if (persona == null) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Datos de persona no encontrados"));
+        }
+
+        // Actualizar campos editables
+        persona.setNombreCompleto(updateRequest.getNombreCompleto());
+        persona.setApellidos(updateRequest.getApellidos());
+        persona.setDireccion(updateRequest.getDireccion());
+        persona.setTelefono(updateRequest.getTelefono());
+
+        personaRepository.save(persona);
+
+        return ResponseEntity.ok(new MessageResponse("Perfil del cliente actualizado exitosamente"));
     }
 }
