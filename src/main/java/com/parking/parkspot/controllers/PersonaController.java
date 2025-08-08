@@ -987,4 +987,57 @@ public class PersonaController {
 
         return ResponseEntity.ok(new MessageResponse("Cliente registrado exitosamente con sus datos y vehículo"));
     }
+
+    // VIGILANTE puede buscar CLIENTE con vehículos para crear reportes
+    @GetMapping("/cliente-para-reporte/{nombre}")
+    @PreAuthorize("hasRole('ROLE_VIGILANTE')")
+    public ResponseEntity<?> buscarClienteParaReporte(@PathVariable String nombre) {
+        if (nombre == null || nombre.trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: El parámetro 'nombre' es requerido"));
+        }
+
+        List<User> usuarios = userRepository.findAll();
+        
+        List<PerfilCompletoResponse> clientes = usuarios.stream()
+                .filter(user -> user.getRoles().stream()
+                        .anyMatch(role -> role.getName().name().equals("ROLE_CLIENTE")))
+                .filter(user -> user.getPersona() != null && 
+                        (user.getPersona().getNombreCompleto().toLowerCase().contains(nombre.toLowerCase()) ||
+                         user.getPersona().getApellidos().toLowerCase().contains(nombre.toLowerCase()) ||
+                         (user.getPersona().getNombreCompleto() + " " + user.getPersona().getApellidos())
+                                .toLowerCase().contains(nombre.toLowerCase())))
+                .distinct()
+                .map(user -> {
+                    // Obtener vehículos básicos para el reporte
+                    List<Vehiculo> vehiculos = vehiculoRepository.findByCliente(user);
+                    List<VehiculoBasicoResponse> vehiculosBasicos = vehiculos.stream()
+                            .map(vehiculo -> new VehiculoBasicoResponse(
+                                vehiculo.getId(),
+                                vehiculo.getPlaca(),
+                                vehiculo.getMarca(),
+                                vehiculo.getModelo(),
+                                vehiculo.getTipo()
+                            ))
+                            .collect(Collectors.toList());
+                    
+                    // Constructor CON vehículos para reportes
+                    return new PerfilCompletoResponse(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getEmail(),
+                        user.getPersona().getNombreCompleto(),
+                        user.getPersona().getApellidos(),
+                        user.getPersona().getDni(),
+                        user.getPersona().getDireccion(),
+                        user.getPersona().getTelefono(),
+                        user.getPersona().getEstado(),
+                        null, // SIN roles para simplificar
+                        vehiculosBasicos // CON vehículos
+                    );
+                })
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(clientes);
+    }
 }
