@@ -8,14 +8,18 @@ public class VehiculoBasicoResponse {
     private String marca;
     private String modelo;
     private TipoVehiculo tipo;
+    private Integer año;
+    private String color;
 
     // Constructor
-    public VehiculoBasicoResponse(Long id, String placa, String marca, String modelo, TipoVehiculo tipo) {
+    public VehiculoBasicoResponse(Long id, String placa, String marca, String modelo, TipoVehiculo tipo, Integer año, String color) {
         this.id = id;
         this.placa = placa;
         this.marca = marca;
         this.modelo = modelo;
         this.tipo = tipo;
+        this.año = año;
+        this.color = color;
     }
 
     // Getters y setters
@@ -33,4 +37,10 @@ public class VehiculoBasicoResponse {
 
     public TipoVehiculo getTipo() { return tipo; }
     public void setTipo(TipoVehiculo tipo) { this.tipo = tipo; }
+
+    public Integer getAño() { return año; }
+    public void setAño(Integer año) { this.año = año; }
+
+    public String getColor() { return color; }
+    public void setColor(String color) { this.color = color; }
 }

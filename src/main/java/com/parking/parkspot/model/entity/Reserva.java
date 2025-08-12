@@ -41,5 +41,122 @@ public class Reserva {
     @Column(name = "observaciones")
     private String observaciones;
 
-    // Constructors, getters, setters...
+    // Constructors
+    public Reserva() {}
+
+    public Reserva(User cliente, Vehiculo vehiculo, EspacioEstacionamiento espacio, 
+                   LocalDateTime fechaInicio, LocalDateTime fechaFin, String observaciones) {
+        this.cliente = cliente;
+        this.vehiculo = vehiculo;
+        this.espacio = espacio;
+        this.fechaReserva = LocalDateTime.now();
+        this.fechaInicio = fechaInicio;
+        this.fechaFin = fechaFin;
+        this.estado = EstadoReserva.PENDIENTE;
+        this.observaciones = observaciones;
+    }
+
+    // Métodos de negocio
+    public void confirmar() {
+        this.estado = EstadoReserva.CONFIRMADA;
+    }
+
+    public void cancelar(String motivo) {
+        this.estado = EstadoReserva.CANCELADA;
+        this.observaciones = this.observaciones != null 
+            ? this.observaciones + " | Cancelada: " + motivo
+            : "Cancelada: " + motivo;
+    }
+
+    public void marcarComoUtilizada() {
+        this.estado = EstadoReserva.UTILIZADA;
+    }
+
+    public boolean estaConfirmada() {
+        return this.estado == EstadoReserva.CONFIRMADA;
+    }
+
+    public boolean estaPendiente() {
+        return this.estado == EstadoReserva.PENDIENTE;
+    }
+
+    public boolean estaVigente() {
+        LocalDateTime ahora = LocalDateTime.now();
+        return this.estado == EstadoReserva.CONFIRMADA && 
+               ahora.isAfter(this.fechaInicio) && 
+               ahora.isBefore(this.fechaFin);
+    }
+
+    // Getters and setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public User getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(User cliente) {
+        this.cliente = cliente;
+    }
+
+    public Vehiculo getVehiculo() {
+        return vehiculo;
+    }
+
+    public void setVehiculo(Vehiculo vehiculo) {
+        this.vehiculo = vehiculo;
+    }
+
+    public EspacioEstacionamiento getEspacio() {
+        return espacio;
+    }
+
+    public void setEspacio(EspacioEstacionamiento espacio) {
+        this.espacio = espacio;
+    }
+
+    public LocalDateTime getFechaReserva() {
+        return fechaReserva;
+    }
+
+    public void setFechaReserva(LocalDateTime fechaReserva) {
+        this.fechaReserva = fechaReserva;
+    }
+
+    public LocalDateTime getFechaInicio() {
+        return fechaInicio;
+    }
+
+    public void setFechaInicio(LocalDateTime fechaInicio) {
+        this.fechaInicio = fechaInicio;
+    }
+
+    public LocalDateTime getFechaFin() {
+        return fechaFin;
+    }
+
+    public void setFechaFin(LocalDateTime fechaFin) {
+        this.fechaFin = fechaFin;
+    }
+
+    public EstadoReserva getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoReserva estado) {
+        this.estado = estado;
+    }
+
+    public String getObservaciones() {
+        return observaciones;
+    }
+
+    public void setObservaciones(String observaciones) {
+        this.observaciones = observaciones;
+    }
 }

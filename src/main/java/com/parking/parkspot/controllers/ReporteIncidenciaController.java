@@ -1,3 +1,4 @@
+
 package com.parking.parkspot.controllers;
 
 import java.util.List;
@@ -312,7 +313,56 @@ public class ReporteIncidenciaController {
 
         return ResponseEntity.ok(reportesResponse);
     }
+    @GetMapping("/vehiculos-cliente/{clienteId}")
+    @PreAuthorize("hasRole('ROLE_VIGILANTE')")
+    public ResponseEntity<?> listarVehiculosPorCliente(@PathVariable Long clienteId) {
+        Optional<User> clienteOpt = userRepository.findById(clienteId);
+        if (!clienteOpt.isPresent()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Cliente no encontrado"));
+        }
+        User cliente = clienteOpt.get();
+        List<Vehiculo> vehiculos = vehiculoRepository.findByCliente(cliente);
+        // Mapear a DTO con todos los datos relevantes
+        List<VehiculoDTO> vehiculosDTO = vehiculos.stream().map(v -> new VehiculoDTO(
+                v.getId(),
+                v.getPlaca(),
+                v.getMarca(),
+                v.getModelo(),
+                v.getAño(),
+                v.getColor(),
+                v.getTipo() != null ? v.getTipo().name() : null
+        )).collect(Collectors.toList());
+        return ResponseEntity.ok(vehiculosDTO);
+    }
 
+    // DTO para exponer todos los datos del vehículo
+    public static class VehiculoDTO {
+        private Long id;
+        private String placa;
+        private String marca;
+        private String modelo;
+        private Integer anio;
+        private String color;
+        private String tipoVehiculo;
+
+        public VehiculoDTO(Long id, String placa, String marca, String modelo, Integer anio, String color, String tipoVehiculo) {
+            this.id = id;
+            this.placa = placa;
+            this.marca = marca;
+            this.modelo = modelo;
+            this.anio = anio;
+            this.color = color;
+            this.tipoVehiculo = tipoVehiculo;
+        }
+
+        public Long getId() { return id; }
+        public String getPlaca() { return placa; }
+        public String getMarca() { return marca; }
+        public String getModelo() { return modelo; }
+        public Integer getAnio() { return anio; }
+        public String getColor() { return color; }
+        public String getTipoVehiculo() { return tipoVehiculo; }
+    }
     // ADMIN puede buscar reportes por placa de vehículo
     @GetMapping("/buscar-vehiculo")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -401,6 +451,28 @@ public class ReporteIncidenciaController {
         }
 
         return ResponseEntity.ok(new MessageResponse("Reporte " + mensajeEstado + " exitosamente"));
+    }
+
+        // CLIENTE puede ver sus propios reportes
+    @GetMapping("/mis-reportes-cliente")
+    @PreAuthorize("hasRole('ROLE_CLIENTE')")
+    public ResponseEntity<?> obtenerMisReportesCliente(Authentication authentication) {
+        String username = authentication.getName();
+        Optional<User> clienteOpt = userRepository.findByUsername(username);
+
+        if (!clienteOpt.isPresent()) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Cliente no encontrado"));
+        }
+
+        User cliente = clienteOpt.get();
+        List<ReporteIncidencia> reportes = reporteRepository.findByCliente(cliente);
+
+        List<ReporteIncidenciaResponse> reportesResponse = reportes.stream()
+                .map(this::convertirAResponse)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(reportesResponse);
     }
 
     // Convertir entidad a response

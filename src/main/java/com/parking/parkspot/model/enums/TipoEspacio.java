@@ -1,8 +1,10 @@
 package com.parking.parkspot.model.enums;
 
 public enum TipoEspacio {
-    AUTO, // Incluye: sedan, SUV, hatchback, compacto
-    CAMIONETA, // Incluye: pickup, camioneta, vehículos grandes
-    MOTO // Motocicleta
+    REGULAR,      // Espacios normales para autos
+    DISCAPACITADO, // Espacios para personas con discapacidad
+    VIP,          // Espacios premium/VIP
+    MOTO,         // Espacios para motocicletas
+    CAMIONETA     // Espacios para vehículos grandes
 }
 

@@ -176,7 +176,9 @@ public class PersonaController {
                                 vehiculo.getPlaca(),
                                 vehiculo.getMarca(),
                                 vehiculo.getModelo(),
-                                vehiculo.getTipo()
+                                vehiculo.getTipo(),
+                                vehiculo.getAño(),
+                                vehiculo.getColor()
                             ))
                             .collect(Collectors.toList());
                     
@@ -360,8 +362,8 @@ public class PersonaController {
                     List<String> roles = user.getRoles().stream()
                             .map(role -> role.getName().name())
                             .collect(Collectors.toList());
-                    
-                    // Obtener vehículos básicos
+
+                    // Obtener vehículos básicos (ahora con año y color)
                     List<Vehiculo> vehiculos = vehiculoRepository.findByCliente(user);
                     List<VehiculoBasicoResponse> vehiculosBasicos = vehiculos.stream()
                             .map(vehiculo -> new VehiculoBasicoResponse(
@@ -369,10 +371,12 @@ public class PersonaController {
                                 vehiculo.getPlaca(),
                                 vehiculo.getMarca(),
                                 vehiculo.getModelo(),
-                                vehiculo.getTipo()
+                                vehiculo.getTipo(),
+                                vehiculo.getAño(),
+                                vehiculo.getColor()
                             ))
                             .collect(Collectors.toList());
-                    
+
                     // Constructor CON roles Y vehículos
                     return new PerfilCompletoResponse(
                         user.getId(),
@@ -385,7 +389,7 @@ public class PersonaController {
                         user.getPersona().getTelefono(),
                         user.getPersona().getEstado(),
                         roles,
-                        vehiculosBasicos // ¡USA VehiculoBasicoResponse!
+                        vehiculosBasicos
                     );
                 })
                 .collect(Collectors.toList());
@@ -429,7 +433,9 @@ public class PersonaController {
                     vehiculo.getPlaca(),
                     vehiculo.getMarca(),
                     vehiculo.getModelo(),
-                    vehiculo.getTipo()
+                    vehiculo.getTipo(),
+                    vehiculo.getAño(),
+                    vehiculo.getColor()
                 ))
                 .collect(Collectors.toList());
 
@@ -1017,7 +1023,9 @@ public class PersonaController {
                                 vehiculo.getPlaca(),
                                 vehiculo.getMarca(),
                                 vehiculo.getModelo(),
-                                vehiculo.getTipo()
+                                vehiculo.getTipo(),
+                                vehiculo.getAño(),
+                                vehiculo.getColor()
                             ))
                             .collect(Collectors.toList());
                     

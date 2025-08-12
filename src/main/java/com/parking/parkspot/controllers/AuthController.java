@@ -101,6 +101,7 @@ public class AuthController {
             telefono));
     }
 
+    // Registro público: solo permite crear clientes
     @PostMapping("/registrarme")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
@@ -114,7 +115,7 @@ public class AuthController {
                     .badRequest()
                     .body(new MessageResponse("Error: ¡El correo electrónico ya está en uso!"));
         }
-         // Validar que el DNI no exista
+        // Validar que el DNI no exista
         if (personaRepository.existsByDni(signUpRequest.getDni())) {
             return ResponseEntity
                     .badRequest()
@@ -128,19 +129,68 @@ public class AuthController {
         persona.setDni(signUpRequest.getDni());
         persona.setDireccion(signUpRequest.getDireccion());
         persona.setTelefono(signUpRequest.getTelefono());
-        persona.setEstado(1); // ¡AGREGA ESTA LÍNEA! - Estado activo por defecto
-        // Si tienes más campos, agrégalos aquí
+        persona.setEstado(1);
         personaRepository.save(persona);
 
-        // Create new user's account
+        // Solo rol cliente
         User user = new User(signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
                 encoder.encode(signUpRequest.getPassword()));
-        user.setPersona(persona); // ¡ESTA LÍNEA AQUÍ!
+        user.setPersona(persona);
+        Role clienteRole = roleRepository.findByName(ERole.ROLE_CLIENTE)
+                .orElseThrow(() -> new RuntimeException("Error: No se encontró el rol."));
+        Set<Role> roles = new HashSet<>();
+        roles.add(clienteRole);
+        user.setRoles(roles);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(new MessageResponse("Usuario registrado exitosamente!"));
+    }
+
+    // Registro por admin: puede crear admin, vigilante o cliente
+    @PostMapping("/registrar-usuario")
+    public ResponseEntity<?> registrarUsuarioPorAdmin(@Valid @RequestBody SignupRequest signUpRequest, Authentication authentication) {
+        // Solo admin puede acceder
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            return ResponseEntity.status(403).body(new MessageResponse("Acceso denegado: solo el admin puede registrar usuarios especiales."));
+        }
+
+        if (userRepository.existsByUsername(signUpRequest.getUsername())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new MessageResponse("Error: ¡El nombre de usuario ya está tomado!"));
+        }
+
+        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new MessageResponse("Error: ¡El correo electrónico ya está en uso!"));
+        }
+        if (personaRepository.existsByDni(signUpRequest.getDni())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new MessageResponse("Error: ¡El DNI ya está registrado!"));
+        }
+
+        Persona persona = new Persona();
+        persona.setNombreCompleto(signUpRequest.getNombreCompleto());
+        persona.setApellidos(signUpRequest.getApellidos());
+        persona.setDni(signUpRequest.getDni());
+        persona.setDireccion(signUpRequest.getDireccion());
+        persona.setTelefono(signUpRequest.getTelefono());
+        persona.setEstado(1);
+        personaRepository.save(persona);
+
+        User user = new User(signUpRequest.getUsername(),
+                signUpRequest.getEmail(),
+                encoder.encode(signUpRequest.getPassword()));
+        user.setPersona(persona);
         Set<String> strRoles = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
-
-        if (strRoles == null) {
+        if (strRoles == null || strRoles.isEmpty()) {
             Role clienteRole = roleRepository.findByName(ERole.ROLE_CLIENTE)
                     .orElseThrow(() -> new RuntimeException("Error: No se encontró el rol."));
             roles.add(clienteRole);
@@ -149,15 +199,13 @@ public class AuthController {
                 switch (role) {
                     case "admin":
                         Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
-                                .orElseThrow(() -> new RuntimeException("Error:No se encontró el rol."));
+                                .orElseThrow(() -> new RuntimeException("Error: No se encontró el rol."));
                         roles.add(adminRole);
-
                         break;
                     case "vigilante":
                         Role vigilanteRole = roleRepository.findByName(ERole.ROLE_VIGILANTE)
                                 .orElseThrow(() -> new RuntimeException("Error: No se encontró el rol."));
                         roles.add(vigilanteRole);
-
                         break;
                     default:
                         Role clienteRole = roleRepository.findByName(ERole.ROLE_CLIENTE)
@@ -166,11 +214,9 @@ public class AuthController {
                 }
             });
         }
-
         user.setRoles(roles);
         userRepository.save(user);
-
-        return ResponseEntity.ok(new MessageResponse("Usuario registrado exitosamente!"));
+        return ResponseEntity.ok(new MessageResponse("Usuario registrado exitosamente por admin!"));
     }
 }
 
