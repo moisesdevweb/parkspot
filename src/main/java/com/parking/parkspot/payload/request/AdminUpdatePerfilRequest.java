@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class AdminUpdatePerfilRequest {
+    // Permite a admin/vigilante cambiar el estado (1=activo, 0=inactivo)
+    private Integer estado;
     @NotBlank
     @Size(max = 120)
     @Email
@@ -32,13 +34,14 @@ public class AdminUpdatePerfilRequest {
     public AdminUpdatePerfilRequest() {}
 
     public AdminUpdatePerfilRequest(String email, String nombreCompleto, String apellidos, 
-                                   String dni, String direccion, String telefono) {
+                                   String dni, String direccion, String telefono, Integer estado) {
         this.email = email;
         this.nombreCompleto = nombreCompleto;
         this.apellidos = apellidos;
         this.dni = dni;
         this.direccion = direccion;
         this.telefono = telefono;
+        this.estado = estado;
     }
 
     // Getters y setters
@@ -59,4 +62,7 @@ public class AdminUpdatePerfilRequest {
 
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public Integer getEstado() { return estado; }
+    public void setEstado(Integer estado) { this.estado = estado; }
 }

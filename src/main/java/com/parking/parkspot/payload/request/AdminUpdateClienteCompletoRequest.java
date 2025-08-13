@@ -33,6 +33,9 @@ public class AdminUpdateClienteCompletoRequest {
     @Size(max = 15)
     private String telefono;
 
+    // ESTADO DEL CLIENTE
+    private Integer estado;
+
     // LISTA DE VEHÍCULOS
     @Valid
     private List<VehiculoUpdateRequest> vehiculos;
@@ -58,6 +61,9 @@ public class AdminUpdateClienteCompletoRequest {
 
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public Integer getEstado() { return estado; }
+    public void setEstado(Integer estado) { this.estado = estado; }
 
     public List<VehiculoUpdateRequest> getVehiculos() { return vehiculos; }
     public void setVehiculos(List<VehiculoUpdateRequest> vehiculos) { this.vehiculos = vehiculos; }
