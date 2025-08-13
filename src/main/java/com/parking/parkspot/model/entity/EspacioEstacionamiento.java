@@ -18,7 +18,7 @@ public class EspacioEstacionamiento {
     private String numero; // A1, A2, B1, B2, etc.
 
     @Enumerated(EnumType.STRING)
-    private TipoEspacio tipo; // REGULAR, DISCAPACITADO, VIP
+    private TipoEspacio tipo; // REGULAR, DISCAPACITADO, MOTO, CAMIONETA
 
     @Enumerated(EnumType.STRING)
     private EstadoEspacio estado; // DISPONIBLE, OCUPADO, RESERVADO, MANTENIMIENTO

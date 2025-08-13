@@ -11,9 +11,12 @@ import org.springframework.web.bind.annotation.*;
 
 import com.parking.parkspot.model.entity.EspacioEstacionamiento;
 import com.parking.parkspot.model.enums.EstadoEspacio;
-import com.parking.parkspot.model.enums.TipoEspacio;
+
+
 import com.parking.parkspot.payload.response.EspacioEstacionamientoResponse;
 import com.parking.parkspot.payload.response.MessageResponse;
+import com.parking.parkspot.payload.request.CrearEspacioRequest;
+import com.parking.parkspot.payload.request.ActualizarEspacioRequest;
 import com.parking.parkspot.repository.EspacioEstacionamientoRepository;
 
 import jakarta.validation.Valid;
@@ -26,7 +29,8 @@ public class GestionEspaciosController {
     @Autowired
     private EspacioEstacionamientoRepository espacioRepository;
 
-    // Crear un espacio individual
+
+    // Crear un espacio individual (admin define todos los campos)
     @PostMapping("/crear")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<?> crearEspacio(@Valid @RequestBody CrearEspacioRequest espacioRequest) {
@@ -36,49 +40,20 @@ public class GestionEspaciosController {
                     .body(new MessageResponse("Error: Ya existe un espacio con el número " + espacioRequest.getNumero()));
         }
 
-        // Crear el espacio
+        // Crear el espacio con todos los campos
         EspacioEstacionamiento espacio = new EspacioEstacionamiento(
                 espacioRequest.getNumero(),
                 espacioRequest.getTipo(),
                 espacioRequest.getDescripcion(),
                 espacioRequest.getTarifaPorHora()
         );
+        if (espacioRequest.getEstado() != null) {
+            espacio.setEstado(espacioRequest.getEstado());
+        }
 
         espacioRepository.save(espacio);
 
         return ResponseEntity.ok(new MessageResponse("Espacio " + espacio.getNumero() + " creado exitosamente"));
-    }
-
-    // Crear múltiples espacios de una vez (ideal para inicializar el estacionamiento)
-    @PostMapping("/crear-masivo")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<?> crearEspaciosMasivo(@Valid @RequestBody CrearEspaciosMasivoRequest request) {
-        int espaciosCreados = 0;
-        int espaciosExistentes = 0;
-
-        for (String filas : request.getFilas()) {
-            for (int i = 1; i <= request.getEspaciosPorFila(); i++) {
-                String numeroEspacio = filas + i;
-                
-                // Solo crear si no existe
-                if (!espacioRepository.existsByNumero(numeroEspacio)) {
-                    EspacioEstacionamiento espacio = new EspacioEstacionamiento(
-                            numeroEspacio,
-                            request.getTipoDefecto(),
-                            "Espacio de estacionamiento " + numeroEspacio,
-                            request.getTarifaDefecto()
-                    );
-                    espacioRepository.save(espacio);
-                    espaciosCreados++;
-                } else {
-                    espaciosExistentes++;
-                }
-            }
-        }
-
-        return ResponseEntity.ok(new MessageResponse(
-                "Espacios creados: " + espaciosCreados + 
-                ", Ya existían: " + espaciosExistentes));
     }
 
     // Actualizar un espacio
@@ -198,46 +173,6 @@ public class GestionEspaciosController {
         return ResponseEntity.ok(espaciosResponse);
     }
 
-    // Inicializar estacionamiento con espacios predeterminados
-    @PostMapping("/inicializar-default")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<?> inicializarEspaciosDefault() {
-        // Verificar si ya existen espacios
-        if (espacioRepository.count() > 0) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Ya existen espacios creados. Use crear-masivo para agregar más"));
-        }
-
-        int espaciosCreados = 0;
-        String[] filas = {"A", "B", "C", "D", "E"};  // 5 filas
-        int espaciosPorFila = 10;  // 10 espacios por fila = 50 total
-
-        for (String fila : filas) {
-            for (int i = 1; i <= espaciosPorFila; i++) {
-                String numeroEspacio = fila + i;
-                
-                TipoEspacio tipo = TipoEspacio.REGULAR;
-                // Hacer algunos espacios especiales
-                if (i <= 2) {
-                    tipo = TipoEspacio.DISCAPACITADO;  // A1, A2, B1, B2, etc. para discapacitados
-                } else if (i >= 9) {
-                    tipo = TipoEspacio.VIP;  // A9, A10, B9, B10, etc. espacios VIP
-                }
-
-                EspacioEstacionamiento espacio = new EspacioEstacionamiento(
-                        numeroEspacio,
-                        tipo,
-                        "Espacio de estacionamiento " + numeroEspacio,
-                        tipo == TipoEspacio.VIP ? 10.0 : tipo == TipoEspacio.DISCAPACITADO ? 3.0 : 5.0
-                );
-                espacioRepository.save(espacio);
-                espaciosCreados++;
-            }
-        }
-
-        return ResponseEntity.ok(new MessageResponse(
-                "Estacionamiento inicializado con " + espaciosCreados + " espacios (A1-E10)"));
-    }
 
     // Método de conversión
     private EspacioEstacionamientoResponse convertirEspacioAResponse(EspacioEstacionamiento espacio) {
@@ -251,56 +186,4 @@ public class GestionEspaciosController {
         );
     }
 
-    // ============= CLASES REQUEST INTERNAS =============
-
-    public static class CrearEspacioRequest {
-        private String numero;
-        private TipoEspacio tipo;
-        private String descripcion;
-        private Double tarifaPorHora;
-
-        // Getters y setters
-        public String getNumero() { return numero; }
-        public void setNumero(String numero) { this.numero = numero; }
-        public TipoEspacio getTipo() { return tipo; }
-        public void setTipo(TipoEspacio tipo) { this.tipo = tipo; }
-        public String getDescripcion() { return descripcion; }
-        public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-        public Double getTarifaPorHora() { return tarifaPorHora; }
-        public void setTarifaPorHora(Double tarifaPorHora) { this.tarifaPorHora = tarifaPorHora; }
-    }
-
-    public static class CrearEspaciosMasivoRequest {
-        private List<String> filas;  // ["A", "B", "C"]
-        private Integer espaciosPorFila;  // 10
-        private TipoEspacio tipoDefecto;  // REGULAR
-        private Double tarifaDefecto;  // 5.0
-
-        // Getters y setters
-        public List<String> getFilas() { return filas; }
-        public void setFilas(List<String> filas) { this.filas = filas; }
-        public Integer getEspaciosPorFila() { return espaciosPorFila; }
-        public void setEspaciosPorFila(Integer espaciosPorFila) { this.espaciosPorFila = espaciosPorFila; }
-        public TipoEspacio getTipoDefecto() { return tipoDefecto; }
-        public void setTipoDefecto(TipoEspacio tipoDefecto) { this.tipoDefecto = tipoDefecto; }
-        public Double getTarifaDefecto() { return tarifaDefecto; }
-        public void setTarifaDefecto(Double tarifaDefecto) { this.tarifaDefecto = tarifaDefecto; }
-    }
-
-    public static class ActualizarEspacioRequest {
-        private TipoEspacio tipo;
-        private EstadoEspacio estado;
-        private String descripcion;
-        private Double tarifaPorHora;
-
-        // Getters y setters
-        public TipoEspacio getTipo() { return tipo; }
-        public void setTipo(TipoEspacio tipo) { this.tipo = tipo; }
-        public EstadoEspacio getEstado() { return estado; }
-        public void setEstado(EstadoEspacio estado) { this.estado = estado; }
-        public String getDescripcion() { return descripcion; }
-        public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-        public Double getTarifaPorHora() { return tarifaPorHora; }
-        public void setTarifaPorHora(Double tarifaPorHora) { this.tarifaPorHora = tarifaPorHora; }
-    }
 }
