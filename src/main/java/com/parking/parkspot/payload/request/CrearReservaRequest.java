@@ -1,7 +1,6 @@
 package com.parking.parkspot.payload.request;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Future;
 import java.time.LocalDateTime;
 
 public class CrearReservaRequest {
@@ -12,11 +11,9 @@ public class CrearReservaRequest {
     private Long espacioId;
 
     @NotNull(message = "La fecha de inicio es requerida")
-    @Future(message = "La fecha de inicio debe ser en el futuro")
     private LocalDateTime fechaInicio;
 
     @NotNull(message = "La fecha de fin es requerida")
-    @Future(message = "La fecha de fin debe ser en el futuro")
     private LocalDateTime fechaFin;
 
     private String observaciones;

@@ -2,6 +2,8 @@ package com.parking.parkspot.controllers;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,14 +15,17 @@ import org.springframework.web.bind.annotation.*;
 import com.parking.parkspot.model.entity.RegistroEstacionamiento;
 import com.parking.parkspot.model.entity.Reserva;
 import com.parking.parkspot.model.entity.User;
+import com.parking.parkspot.model.entity.Vehiculo;
 import com.parking.parkspot.model.enums.EstadoRegistro;
 import com.parking.parkspot.payload.request.CrearReservaRequest;
 import com.parking.parkspot.payload.response.MessageResponse;
 import com.parking.parkspot.payload.response.RegistroEstacionamientoResponse;
 import com.parking.parkspot.payload.response.ReservaResponse;
+import com.parking.parkspot.payload.response.VehiculoResponse;
 import com.parking.parkspot.repository.RegistroEstacionamientoRepository;
 import com.parking.parkspot.repository.ReservaRepository;
 import com.parking.parkspot.repository.UserRepository;
+import com.parking.parkspot.repository.VehiculoRepository;
 import com.parking.parkspot.service.ClienteService;
 
 import jakarta.validation.Valid;
@@ -40,7 +45,37 @@ public class ClienteEstacionamientoController {
     private UserRepository userRepository;
 
     @Autowired
+    private VehiculoRepository vehiculoRepository;
+
+    @Autowired
     private ClienteService clienteService;
+
+    // ============= VER VEHÍCULOS =============
+
+    // CLIENTE puede ver sus vehículos registrados
+    @GetMapping("/mis-vehiculos")
+    @PreAuthorize("hasRole('ROLE_CLIENTE')")
+    public ResponseEntity<?> obtenerMisVehiculos(Authentication authentication) {
+        String username = authentication.getName();
+        Optional<User> clienteOpt = userRepository.findByUsername(username);
+        
+        if (!clienteOpt.isPresent()) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Cliente no encontrado"));
+        }
+
+        User cliente = clienteOpt.get();
+        List<Vehiculo> vehiculos = vehiculoRepository.findByCliente(cliente);
+        
+        // Convertir a DTO para evitar referencias circulares
+        List<VehiculoResponse> vehiculosResponse = vehiculos.stream()
+                .map(this::convertirVehiculoAResponse)
+                .collect(Collectors.toList());
+                
+        return ResponseEntity.ok(vehiculosResponse);
+    }
+
+    // ============= VER REGISTROS =============
 
     // CLIENTE puede ver su historial de estacionamientos
     @GetMapping("/mis-registros")
@@ -135,6 +170,32 @@ public class ClienteEstacionamientoController {
         return ResponseEntity.ok(reservasResponse);
     }
 
+    // CLIENTE puede verificar su límite de reservas
+    @GetMapping("/mis-reservas/limite")
+    @PreAuthorize("hasRole('ROLE_CLIENTE')")
+    public ResponseEntity<?> verificarLimiteReservas(Authentication authentication) {
+        String username = authentication.getName();
+        Optional<User> clienteOpt = userRepository.findByUsername(username);
+        
+        if (!clienteOpt.isPresent()) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Cliente no encontrado"));
+        }
+
+        User cliente = clienteOpt.get();
+        long reservasActivas = reservaRepository.countReservasActivasPorCliente(cliente);
+        
+        Map<String, Object> respuesta = new HashMap<>();
+        respuesta.put("reservasActivas", reservasActivas);
+        respuesta.put("limiteMaximo", 2);
+        respuesta.put("puedeCrearNueva", reservasActivas < 2);
+        respuesta.put("mensaje", reservasActivas >= 2 ? 
+            "Has alcanzado el límite máximo de 2 reservas activas" : 
+            "Puedes crear " + (2 - reservasActivas) + " reserva(s) más");
+        
+        return ResponseEntity.ok(respuesta);
+    }
+
     // CLIENTE puede ver sus reservas por estado
     @GetMapping("/mis-reservas/{estado}")
     @PreAuthorize("hasRole('ROLE_CLIENTE')")
@@ -205,6 +266,21 @@ public class ClienteEstacionamientoController {
                 reserva.getFechaFin(),
                 reserva.getEstado(),
                 reserva.getObservaciones()
+        );
+    }
+
+    private VehiculoResponse convertirVehiculoAResponse(Vehiculo vehiculo) {
+        return new VehiculoResponse(
+                vehiculo.getId(),
+                vehiculo.getPlaca(),
+                vehiculo.getMarca(),
+                vehiculo.getModelo(),
+                vehiculo.getColor(),
+                vehiculo.getAño(),
+                vehiculo.getTipo(),
+                vehiculo.getEstado(),
+                vehiculo.getCliente().getId(),
+                vehiculo.getCliente().getPersona().getNombreCompleto()
         );
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -289,9 +290,30 @@ public class ClienteService {
     // ============= CREAR RESERVA =============
     
     public String crearReserva(CrearReservaRequest request, User cliente) {
+        LocalDateTime ahora = LocalDateTime.now();
+        
         // Validar que las fechas sean lógicas
         if (request.getFechaFin().isBefore(request.getFechaInicio())) {
             throw new InvalidOperationException("La fecha de fin debe ser posterior a la fecha de inicio");
+        }
+        
+        // Validación flexible: permitir reservas desde mañana en adelante
+        LocalDateTime inicioDelDiaSiguiente = ahora.toLocalDate().plusDays(1).atStartOfDay();
+        
+        if (request.getFechaInicio().isBefore(inicioDelDiaSiguiente)) {
+            throw new InvalidOperationException("Las reservas deben ser a partir del día siguiente (desde las 00:00)");
+        }
+        
+        // Validar que la duración máxima sea razonable (ej: máximo 3 días)
+        if (request.getFechaInicio().plusDays(3).isBefore(request.getFechaFin())) {
+            throw new InvalidOperationException("La reserva no puede exceder 3 días de duración");
+        }
+        
+        // Validar límite de reservas por cliente (máximo 2 reservas activas)
+        long reservasActivas = reservaRepository.countReservasActivasPorCliente(cliente);
+        if (reservasActivas >= 2) {
+            throw new InvalidOperationException("No puedes tener más de 2 reservas activas. " +
+                    "Cancela o espera a que se utilice una reserva existente.");
         }
         
         // Validar que el vehículo existe y pertenece al cliente
