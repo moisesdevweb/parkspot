@@ -14,12 +14,16 @@ import com.parking.parkspot.model.entity.RegistroEstacionamiento;
 import com.parking.parkspot.model.entity.Reserva;
 import com.parking.parkspot.model.entity.User;
 import com.parking.parkspot.model.enums.EstadoRegistro;
+import com.parking.parkspot.payload.request.CrearReservaRequest;
 import com.parking.parkspot.payload.response.MessageResponse;
 import com.parking.parkspot.payload.response.RegistroEstacionamientoResponse;
 import com.parking.parkspot.payload.response.ReservaResponse;
 import com.parking.parkspot.repository.RegistroEstacionamientoRepository;
 import com.parking.parkspot.repository.ReservaRepository;
 import com.parking.parkspot.repository.UserRepository;
+import com.parking.parkspot.service.ClienteService;
+
+import jakarta.validation.Valid;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -34,6 +38,9 @@ public class ClienteEstacionamientoController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ClienteService clienteService;
 
     // CLIENTE puede ver su historial de estacionamientos
     @GetMapping("/mis-registros")
@@ -78,6 +85,33 @@ public class ClienteEstacionamientoController {
 
         return ResponseEntity.ok(registrosResponse);
     }
+
+    // ============= CREAR RESERVA =============
+
+    // CLIENTE puede crear una nueva reserva
+    @PostMapping("/crear-reserva")
+    @PreAuthorize("hasRole('ROLE_CLIENTE')")
+    public ResponseEntity<?> crearReserva(@Valid @RequestBody CrearReservaRequest reservaRequest,
+                                         Authentication authentication) {
+        String username = authentication.getName();
+        Optional<User> clienteOpt = userRepository.findByUsername(username);
+        
+        if (!clienteOpt.isPresent()) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Cliente no encontrado"));
+        }
+
+        try {
+            User cliente = clienteOpt.get();
+            String mensaje = clienteService.crearReserva(reservaRequest, cliente);
+            return ResponseEntity.ok(new MessageResponse(mensaje));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
+
+    // ============= VER RESERVAS =============
 
     // CLIENTE puede ver sus reservas
     @GetMapping("/mis-reservas")

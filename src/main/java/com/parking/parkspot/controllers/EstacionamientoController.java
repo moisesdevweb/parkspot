@@ -14,6 +14,7 @@ import com.parking.parkspot.payload.request.MoverClienteRequest;
 import com.parking.parkspot.payload.request.RegistrarEntradaRequest;
 import com.parking.parkspot.payload.request.RegistrarSalidaRequest;
 import com.parking.parkspot.payload.response.EspacioEstacionamientoResponse;
+import com.parking.parkspot.payload.response.EspacioDragDropResponse;
 import com.parking.parkspot.payload.response.MessageResponse;
 import com.parking.parkspot.payload.response.RegistroEstacionamientoResponse;
 import com.parking.parkspot.payload.response.ReservaResponse;
@@ -99,11 +100,21 @@ public class EstacionamientoController {
         return ResponseEntity.ok(new MessageResponse(mensaje));
     }
 
+    // ============= VISTA DRAG & DROP PARA ADMIN =============
+    
+    // Obtener espacios con información completa para drag & drop
+    @GetMapping("/espacios/drag-drop")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<?> obtenerEspaciosParaDragDrop() {
+        List<EspacioDragDropResponse> espacios = estacionamientoService.obtenerEspaciosConClientes();
+        return ResponseEntity.ok(espacios);
+    }
+
     // ============= VER REGISTROS =============
 
     // VIGILANTE puede ver registros activos
     @GetMapping("/registros-activos")
-    @PreAuthorize("hasRole('ROLE_VIGILANTE')")
+    @PreAuthorize("hasRole('ROLE_VIGILANTE') or hasRole('ROLE_ADMIN')") // <-- agrega ADMIN
     public ResponseEntity<?> obtenerRegistrosActivos() {
         List<RegistroEstacionamientoResponse> registros = estacionamientoService.obtenerRegistrosActivos();
         return ResponseEntity.ok(registros);

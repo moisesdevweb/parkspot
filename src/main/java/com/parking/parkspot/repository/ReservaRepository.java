@@ -40,6 +40,14 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
                                                  @Param("fechaInicio") LocalDateTime fechaInicio,
                                                  @Param("fechaFin") LocalDateTime fechaFin);
     
+    // Buscar reservas en conflicto (PENDIENTE o CONFIRMADA) para validar nueva reserva
+    @Query("SELECT r FROM Reserva r WHERE r.espacio = :espacio " +
+           "AND (r.estado = 'PENDIENTE' OR r.estado = 'CONFIRMADA') " +
+           "AND r.fechaInicio < :fechaFin AND r.fechaFin > :fechaInicio")
+    List<Reserva> findReservasEnRangoFecha(@Param("espacio") EspacioEstacionamiento espacio,
+                                          @Param("fechaInicio") LocalDateTime fechaInicio,
+                                          @Param("fechaFin") LocalDateTime fechaFin);
+    
     // Buscar reserva confirmada actual para un espacio
     @Query("SELECT r FROM Reserva r WHERE r.espacio = :espacio AND r.estado = 'CONFIRMADA' " +
            "AND r.fechaInicio <= :ahora AND r.fechaFin >= :ahora")

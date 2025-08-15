@@ -26,6 +26,10 @@ public class ClienteService {
     @Autowired
     private RoleRepository roleRepository;
     @Autowired
+    private ReservaRepository reservaRepository;
+    @Autowired
+    private EspacioEstacionamientoRepository espacioRepository;
+    @Autowired
     private PasswordEncoder encoder;
     @Autowired
     private VehiculoService vehiculoService;
@@ -280,5 +284,55 @@ public class ClienteService {
             null,
             vehiculos
         );
+    }
+
+    // ============= CREAR RESERVA =============
+    
+    public String crearReserva(CrearReservaRequest request, User cliente) {
+        // Validar que las fechas sean lógicas
+        if (request.getFechaFin().isBefore(request.getFechaInicio())) {
+            throw new InvalidOperationException("La fecha de fin debe ser posterior a la fecha de inicio");
+        }
+        
+        // Validar que el vehículo existe y pertenece al cliente
+        Vehiculo vehiculo = vehiculoRepository.findById(request.getVehiculoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vehículo no encontrado"));
+                
+        if (!vehiculo.getCliente().getId().equals(cliente.getId())) {
+            throw new InvalidOperationException("El vehículo no pertenece al cliente");
+        }
+        
+        // Validar que el espacio existe y está disponible
+        EspacioEstacionamiento espacio = espacioRepository.findById(request.getEspacioId())
+                .orElseThrow(() -> new ResourceNotFoundException("Espacio no encontrado"));
+                
+        if (!espacio.estaDisponible()) {
+            throw new InvalidOperationException("El espacio " + espacio.getNumero() + " no está disponible");
+        }
+        
+        // Verificar que no hay conflictos de horarios en ese espacio
+        List<Reserva> reservasConflicto = reservaRepository.findReservasEnRangoFecha(
+                espacio, request.getFechaInicio(), request.getFechaFin());
+                
+        if (!reservasConflicto.isEmpty()) {
+            throw new InvalidOperationException("Ya existe una reserva en ese horario para el espacio " + espacio.getNumero());
+        }
+        
+        // Crear la nueva reserva
+        Reserva nuevaReserva = new Reserva();
+        nuevaReserva.setCliente(cliente);
+        nuevaReserva.setVehiculo(vehiculo);
+        nuevaReserva.setEspacio(espacio);
+        nuevaReserva.setFechaReserva(java.time.LocalDateTime.now());
+        nuevaReserva.setFechaInicio(request.getFechaInicio());
+        nuevaReserva.setFechaFin(request.getFechaFin());
+        nuevaReserva.setEstado(com.parking.parkspot.model.enums.EstadoReserva.PENDIENTE);
+        nuevaReserva.setObservaciones(request.getObservaciones());
+        
+        // Guardar la reserva
+        reservaRepository.save(nuevaReserva);
+        
+        return "Reserva creada exitosamente para el espacio " + espacio.getNumero() + 
+               " del " + request.getFechaInicio() + " al " + request.getFechaFin();
     }
 }

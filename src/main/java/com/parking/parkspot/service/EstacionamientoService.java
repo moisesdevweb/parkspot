@@ -22,6 +22,7 @@ import com.parking.parkspot.payload.request.MoverClienteRequest;
 import com.parking.parkspot.payload.request.RegistrarEntradaRequest;
 import com.parking.parkspot.payload.request.RegistrarSalidaRequest;
 import com.parking.parkspot.payload.response.EspacioEstacionamientoResponse;
+import com.parking.parkspot.payload.response.EspacioDragDropResponse;
 import com.parking.parkspot.payload.response.RegistroEstacionamientoResponse;
 import com.parking.parkspot.payload.response.ReservaResponse;
 import com.parking.parkspot.repository.EspacioEstacionamientoRepository;
@@ -59,6 +60,16 @@ public class EstacionamientoService {
         List<EspacioEstacionamiento> espacios = espacioRepository.findByEstadoOrderByNumeroAsc(EstadoEspacio.DISPONIBLE);
         return espacios.stream()
                 .map(this::convertirEspacioAResponse)
+                .collect(Collectors.toList());
+    }
+
+    // ============= ESPACIOS PARA DRAG & DROP =============
+    
+    public List<EspacioDragDropResponse> obtenerEspaciosConClientes() {
+        List<EspacioEstacionamiento> todosLosEspacios = espacioRepository.findAll();
+        
+        return todosLosEspacios.stream()
+                .map(this::convertirEspacioParaDragDrop)
                 .collect(Collectors.toList());
     }
 
@@ -338,6 +349,52 @@ public class EstacionamientoService {
 
     private EspacioEstacionamientoResponse convertirEspacioAResponse(EspacioEstacionamiento espacio) {
         return new EspacioEstacionamientoResponse(
+                espacio.getId(),
+                espacio.getNumero(),
+                espacio.getTipo(),
+                espacio.getEstado(),
+                espacio.getDescripcion(),
+                espacio.getTarifaPorHora()
+        );
+    }
+
+    private EspacioDragDropResponse convertirEspacioParaDragDrop(EspacioEstacionamiento espacio) {
+        // Si el espacio está disponible, solo devolver la información básica
+        if (espacio.estaDisponible()) {
+            return new EspacioDragDropResponse(
+                    espacio.getId(),
+                    espacio.getNumero(),
+                    espacio.getTipo(),
+                    espacio.getEstado(),
+                    espacio.getDescripcion(),
+                    espacio.getTarifaPorHora()
+            );
+        }
+        
+        // Si el espacio está ocupado, buscar el registro activo
+        Optional<RegistroEstacionamiento> registroOpt = registroRepository
+                .findRegistroActivoPorEspacio(espacio);
+                
+        if (registroOpt.isPresent()) {
+            RegistroEstacionamiento registro = registroOpt.get();
+            return new EspacioDragDropResponse(
+                    espacio.getId(),
+                    espacio.getNumero(),
+                    espacio.getTipo(),
+                    espacio.getEstado(),
+                    espacio.getDescripcion(),
+                    espacio.getTarifaPorHora(),
+                    registro.getId(),
+                    registro.getVehiculo().getCliente().getPersona().getNombreCompleto(),
+                    registro.getVehiculo().getCliente().getPersona().getApellidos(),
+                    registro.getVehiculo().getCliente().getPersona().getDni(),
+                    registro.getVehiculo().getPlaca(),
+                    registro.getVehiculo().getTipo().toString()
+            );
+        }
+        
+        // Fallback si no hay registro (no debería pasar)
+        return new EspacioDragDropResponse(
                 espacio.getId(),
                 espacio.getNumero(),
                 espacio.getTipo(),

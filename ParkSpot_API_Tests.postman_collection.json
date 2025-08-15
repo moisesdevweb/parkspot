@@ -1,0 +1,294 @@
+{
+	"info": {
+		"name": "ParkSpot API Tests",
+		"description": "Colección completa de tests para el sistema ParkSpot",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Login Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Login exitoso', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Token presente', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.token).to.not.be.undefined;",
+									"    pm.globals.set('admin_token', jsonData.token);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login Vigilante",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Login vigilante exitoso', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Token vigilante presente', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.token).to.not.be.undefined;",
+									"    pm.globals.set('vigilante_token', jsonData.token);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"vigilante1\",\n    \"password\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "👥 Gestión de Clientes",
+			"item": [
+				{
+					"name": "Listar Todos los Clientes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Lista de clientes obtenida', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Respuesta es array', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/clientes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "clientes"]
+						}
+					}
+				},
+				{
+					"name": "Registrar Cliente Completo",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Cliente registrado exitosamente', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Mensaje de éxito', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('exitosamente');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testclient{{$randomInt}}\",\n    \"email\": \"test{{$randomInt}}@email.com\",\n    \"password\": \"123456\",\n    \"nombreCompleto\": \"Cliente de Prueba\",\n    \"apellidos\": \"Apellidos Test\",\n    \"dni\": \"{{$randomInt}}{{$randomInt}}\",\n    \"telefono\": \"987654321\",\n    \"direccion\": \"Dirección de prueba\",\n    \"placa\": \"ABC{{$randomInt}}\",\n    \"marca\": \"Toyota\",\n    \"modelo\": \"Corolla\",\n    \"color\": \"Blanco\",\n    \"tipoVehiculo\": \"AUTO\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/clientes/registrar-completo",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "clientes", "registrar-completo"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🚗 Gestión de Estacionamiento",
+			"item": [
+				{
+					"name": "Ver Espacios Disponibles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Espacios disponibles obtenidos', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Hay espacios disponibles', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{vigilante_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/estacionamiento/espacios/disponibles",
+							"host": ["{{base_url}}"],
+							"path": ["api", "estacionamiento", "espacios", "disponibles"]
+						}
+					}
+				},
+				{
+					"name": "Registrar Entrada de Vehículo",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Entrada registrada exitosamente', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Mensaje de entrada exitosa', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('Entrada registrada');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{vigilante_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"clienteId\": 2,\n    \"vehiculoId\": 1,\n    \"espacioId\": 1,\n    \"observaciones\": \"Entrada de prueba desde Postman\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/estacionamiento/registrar-entrada",
+							"host": ["{{base_url}}"],
+							"path": ["api", "estacionamiento", "registrar-entrada"]
+						}
+					}
+				},
+				{
+					"name": "Ver Registros Activos",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Registros activos obtenidos', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Respuesta es array', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{vigilante_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/estacionamiento/registros-activos",
+							"host": ["{{base_url}}"],
+							"path": ["api", "estacionamiento", "registros-activos"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080"
+		}
+	]
+}

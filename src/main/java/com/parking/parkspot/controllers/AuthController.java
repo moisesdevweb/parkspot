@@ -65,25 +65,33 @@ public class AuthController {
     @Autowired
     private JwtUtils jwtUtils;
 
-    // LOGIN - Debe mantener la lógica de Spring Security aquí
+    // LOGIN - Puede usar username O email
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        // Primero verificar que el usuario existe y está activo
-        Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername());
+        // Buscar usuario por username O por email
+        String usernameOrEmail = loginRequest.getUsername();
+        Optional<User> userOpt = userRepository.findByUsername(usernameOrEmail);
+        
+        // Si no se encuentra por username, intentar por email
+        if (!userOpt.isPresent()) {
+            userOpt = userRepository.findByEmail(usernameOrEmail);
+        }
+        
         if (!userOpt.isPresent()) {
             return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Usuario no encontrado"));
+                    .body(new MessageResponse("Usuario o email no encontrado"));
         }
 
         User user = userOpt.get();
         // Verificar estado del usuario si tiene persona asociada
         if (user.getPersona() != null && user.getPersona().getEstado() != 1) {
             return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Usuario inactivo"));
+                    .body(new MessageResponse("Usuario inactivo, contacte a un administrador"));
         }
 
+        // Para la autenticación de Spring Security, usar el username real del usuario encontrado
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+                new UsernamePasswordAuthenticationToken(user.getUsername(), loginRequest.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
@@ -114,7 +122,7 @@ public class AuthController {
     }
 
     // SIGNUP BÁSICO - Lógica de Spring Security debe estar aquí
-    @PostMapping("/signup")
+    @PostMapping("/registar-usuario")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return ResponseEntity.badRequest()
@@ -166,7 +174,7 @@ public class AuthController {
     }
 
     // SIGNUP COMPLETO - Lógica de Spring Security debe estar aquí
-    @PostMapping("/signup-completo")
+    @PostMapping("/registar-completo")
     public ResponseEntity<?> registerUserCompleto(@Valid @RequestBody SignupCompletoRequest signUpRequest) {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return ResponseEntity.badRequest()
