@@ -290,23 +290,21 @@ public class ClienteService {
     // ============= CREAR RESERVA =============
     
     public String crearReserva(CrearReservaRequest request, User cliente) {
-        LocalDateTime ahora = LocalDateTime.now();
-        
-        // Validar que las fechas sean lógicas
+        // Validaciones básicas de fechas
         if (request.getFechaFin().isBefore(request.getFechaInicio())) {
             throw new InvalidOperationException("La fecha de fin debe ser posterior a la fecha de inicio");
         }
+
+        LocalDateTime ahora = LocalDateTime.now();
         
-        // Validación flexible: permitir reservas desde mañana en adelante
-        LocalDateTime inicioDelDiaSiguiente = ahora.toLocalDate().plusDays(1).atStartOfDay();
-        
-        if (request.getFechaInicio().isBefore(inicioDelDiaSiguiente)) {
-            throw new InvalidOperationException("Las reservas deben ser a partir del día siguiente (desde las 00:00)");
+        // NUEVA REGLA: Permitir reservas desde HOY pero al menos 1 hora después
+        if (request.getFechaInicio().isBefore(ahora.plusHours(1))) {
+            throw new InvalidOperationException("La reserva debe ser al menos 1 hora después de la hora actual");
         }
-        
-        // Validar que la duración máxima sea razonable (ej: máximo 3 días)
-        if (request.getFechaInicio().plusDays(3).isBefore(request.getFechaFin())) {
-            throw new InvalidOperationException("La reserva no puede exceder 3 días de duración");
+
+        // NUEVA REGLA: Máximo 2 días de duración (no 3)
+        if (request.getFechaInicio().plusDays(2).isBefore(request.getFechaFin())) {
+            throw new InvalidOperationException("Las reservas no pueden durar más de 2 días");
         }
         
         // Validar límite de reservas por cliente (máximo 2 reservas activas)

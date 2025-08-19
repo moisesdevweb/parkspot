@@ -182,6 +182,7 @@ public class EstacionamientoServiceTest {
         verify(espacioRepository).findById(1L);
     }
 
+    // Elimina este bloque si no quieres este test
     @Test
     void testRegistrarEntradaVehiculoNoPerteneceACliente() {
         // Arrange

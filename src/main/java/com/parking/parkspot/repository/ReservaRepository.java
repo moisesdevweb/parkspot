@@ -65,4 +65,10 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
     @Query("SELECT COUNT(r) FROM Reserva r WHERE r.cliente = :cliente " +
            "AND (r.estado = 'PENDIENTE' OR r.estado = 'CONFIRMADA')")
     long countReservasActivasPorCliente(@Param("cliente") User cliente);
+
+    // Agregar estos métodos para contar reservas por cliente
+    long countByClienteIdAndEstado(Long clienteId, EstadoReserva estado);
+
+    // O si tu entidad Reserva tiene un campo "cliente" en lugar de "clienteId"
+    long countByClienteAndEstado(User cliente, EstadoReserva estado);
 }

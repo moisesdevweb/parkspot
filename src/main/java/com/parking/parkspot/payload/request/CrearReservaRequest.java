@@ -1,6 +1,8 @@
 package com.parking.parkspot.payload.request;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.FutureOrPresent;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 
 public class CrearReservaRequest {
@@ -11,9 +13,12 @@ public class CrearReservaRequest {
     private Long espacioId;
 
     @NotNull(message = "La fecha de inicio es requerida")
+    @FutureOrPresent(message = "La fecha de inicio no puede ser en el pasado")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm") // ✅ SIN segundos
     private LocalDateTime fechaInicio;
 
     @NotNull(message = "La fecha de fin es requerida")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm") // ✅ SIN segundos  
     private LocalDateTime fechaFin;
 
     private String observaciones;

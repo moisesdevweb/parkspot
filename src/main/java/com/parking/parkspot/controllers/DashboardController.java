@@ -66,7 +66,7 @@ public class DashboardController {
         long reservasConfirmadas = reservaRepository.countByEstado(EstadoReserva.CONFIRMADA);
         long reservasCanceladas = reservaRepository.countByEstado(EstadoReserva.CANCELADA);
         long reservasUtilizadas = reservaRepository.countByEstado(EstadoReserva.UTILIZADA);
-
+ 
         Map<String, Object> reservas = new HashMap<>();
         reservas.put("pendientes", reservasPendientes);
         reservas.put("confirmadas", reservasConfirmadas);
@@ -94,6 +94,25 @@ public class DashboardController {
         estadisticas.put("espaciosOcupados", espaciosOcupados);
         estadisticas.put("registrosActivos", registrosActivos);
         estadisticas.put("reservasPendientes", reservasPendientes);
+
+        return ResponseEntity.ok(estadisticas);
+    }
+    // Estadísticas básicas para CLIENTE
+    @GetMapping("/estadisticas-cliente")
+    @PreAuthorize("hasRole('ROLE_CLIENTE')")
+    public ResponseEntity<?> obtenerEstadisticasCliente() {
+        Map<String, Object> estadisticas = new HashMap<>();
+
+        // Solo información básica que un cliente puede ver
+        long espaciosDisponibles = espacioRepository.countByEstado(EstadoEspacio.DISPONIBLE);
+        long espaciosTotal = espacioRepository.count();
+        
+        // Aquí podrías agregar estadísticas específicas del cliente autenticado
+        // Por ejemplo, sus reservas personales
+        
+        estadisticas.put("espaciosDisponibles", espaciosDisponibles);
+        estadisticas.put("espaciosTotal", espaciosTotal);
+        estadisticas.put("porcentajeDisponibilidad", espaciosTotal > 0 ? (espaciosDisponibles * 100.0 / espaciosTotal) : 0);
 
         return ResponseEntity.ok(estadisticas);
     }
